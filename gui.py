@@ -1,8 +1,10 @@
 import tkinter as tk
+from datetime import datetime as dt
 from tkinter import ttk, messagebox
+
 from tkcalendar import DateEntry
+
 from task import Task
-from datetime import datetime as dt, datetime
 
 
 class ToDoApp:
@@ -184,18 +186,18 @@ class ToDoApp:
         button_frame = tk.Frame(edit_task_window)
         button_frame.grid(row=4, column=1, pady=10)
 
-        save_button = tk.Button(button_frame, text="Save", bg="lightgreen", command=lambda: self.save_task(task, title_entry.get(),
+        save_button = tk.Button(button_frame, text="Save", fg="green", command=lambda: self.save_task(task, title_entry.get(),
                                                                                           content_text.get("1.0",
                                                                                                            tk.END).strip(),
                                                                                           date_entry.get_date(),
                                                                                           edit_task_window))
         save_button.grid(row=1, column=2, sticky="se", padx=20)
 
-        cancel_button = tk.Button(button_frame, text="Cancel", bg="pink", command=edit_task_window.destroy)
+        cancel_button = tk.Button(button_frame, text="Cancel", fg="black", command= lambda: (edit_task_window.destroy(), self.view_task(task)))
         cancel_button.grid(row=1, column=1, sticky="s", padx=20)
 
         if task:
-            delete_button = tk.Button(button_frame, text="Delete", bg="red", command=lambda: self.delete_task(task.id, edit_task_window))
+            delete_button = tk.Button(button_frame, text="Delete", fg="red", command=lambda: self.delete_task(task.id, edit_task_window))
             delete_button.grid(row=1, column=0, sticky="sw", padx=20)
 
     def delete_task(self, task_id, window = None):
@@ -215,7 +217,7 @@ class ToDoApp:
         self.update_task_list()
 
     def save_task(self, task, title, content, due_date, window):
-        if due_date < dt.today().date() and task.status != "progress":
+        if due_date < dt.today().date():
             messagebox.showerror("Error", "You cannot select a date earlier than today!")
             return
         if not title.strip():
