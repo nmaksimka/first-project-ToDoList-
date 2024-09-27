@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from tkcalendar import DateEntry
 from task import Task
-from datetime import datetime as dt
+from datetime import datetime as dt, datetime
 
 
 class ToDoApp:
@@ -15,6 +15,7 @@ class ToDoApp:
         self.root = root
         self.db = db
         self.root.title("To-Do List")
+        self.root.resizable(False, False)
         self.create_widgets()
         self.update_task_list()
 
@@ -24,10 +25,10 @@ class ToDoApp:
 
         self.search_entry = tk.Entry(top_frame)
         self.search_entry.grid(row=0, column=0, padx=5, sticky="w")
-        search_button = tk.Button(top_frame, text="Update Search", command=self.search_tasks)
+        search_button = tk.Button(top_frame, text="Update Search", bg="lightgray", command=self.search_tasks)
         search_button.grid(row=0, column=1, padx=5, sticky="ew")
 
-        self.filter_combobox = ttk.Combobox(top_frame, values=["All", "In Progress", "Expired"])
+        self.filter_combobox = ttk.Combobox(top_frame, values=["All", "In Progress", "Expired", "Done"])
         self.filter_combobox.set("All")
         self.filter_combobox.grid(row=0, column=2, padx=5, sticky="ew")
         self.filter_combobox.bind("<<ComboboxSelected>>", self.filter_tasks)
@@ -57,21 +58,17 @@ class ToDoApp:
         bottom_frame = tk.Frame(self.root)
         bottom_frame.grid(row=2, column=0, pady=10, sticky="ew")
 
-        add_button = tk.Button(bottom_frame, text="Add Task", command=self.add_task)
-        add_button.pack(side=tk.LEFT, padx=5)
-
-        done_tasks_button = tk.Button(bottom_frame, text="Completed Tasks", command=self.open_done_tasks)
-        done_tasks_button.pack(side=tk.LEFT, padx=5)
+        add_button = tk.Button(bottom_frame, text="Add Task", bg="lightgray", command=self.add_task)
+        add_button.pack(side=tk.LEFT, padx=10, pady=10)
 
     def update_task_list(self, tasks=None):
         for row in self.task_tree.get_children():
             self.task_tree.delete(row)
         tasks = tasks or self.db.get_tasks(status=None)
         for task in tasks:
-            if task.status != "done":
-                self.task_tree.insert("", "end", values=(
-                    task.id, task.title, task.datetime.strftime('%Y-%m-%d') if task.datetime else "No Deadline",
-                    task.status))
+            self.task_tree.insert("", "end", values=(
+                task.id, task.title, task.datetime.strftime('%Y-%m-%d') if task.datetime else "No Deadline",
+                task.status))
 
     def search_tasks(self):
         query = self.search_entry.get()
@@ -79,7 +76,8 @@ class ToDoApp:
         status_mapping = {
             "All": None,
             "In Progress": "progress",
-            "Expired": "expired"
+            "Expired": "expired",
+            "Done": "done"
         }
         status = status_mapping.get(filter_value)
         tasks = self.db.get_tasks(status=status)
@@ -96,20 +94,6 @@ class ToDoApp:
         task_id = self.task_tree.item(selected_item)["values"][0]
         task = next(task for task in self.db.get_tasks() if task.id == task_id)
         self.view_task(task)
-
-    def on_done_task_double_click(self, event):
-        selected_items = self.done_task_tree.selection()
-        if not selected_items:
-            return
-
-        selected_item = selected_items[0]
-        task_id = self.done_task_tree.item(selected_item)["values"][0]
-
-        try:
-            task = next(task for task in self.db.get_tasks(status="done") if task.id == task_id)
-            self.view_task(task)
-        except StopIteration:
-            messagebox.showerror("Error", "Task not found.")
 
     def add_task(self):
         self.edit_task()
@@ -131,6 +115,7 @@ class ToDoApp:
     def view_task(self, task):
         view_task_window = tk.Toplevel(self.root)
         view_task_window.title("View Task")
+        view_task_window.resizable(False, False)
 
         tk.Label(view_task_window, text="Title").grid(row=0, column=0, pady=5, padx=5)
         title_entry = tk.Entry(view_task_window)
@@ -155,13 +140,13 @@ class ToDoApp:
             deadline_label = tk.Label(view_task_window, text=f"Due Date: {task.datetime.strftime('%Y-%m-%d')}")
             deadline_label.grid(row=3, column=1, pady=5, padx=5)
 
-        edit_button = tk.Button(view_task_window, text="Edit", command=lambda: self.edit_task(task, view_task_window))
-        edit_button.grid(row=4, column=1, pady=5, padx=5, sticky="se")
+        edit_button = tk.Button(view_task_window, text="Edit",bg="lightgray", command=lambda: self.edit_task(task, view_task_window))
+        edit_button.grid(row=4, column=1, pady=15, padx=15, sticky="se")
 
         if task.status != "done" and task.status != "expired":
             done_button = tk.Button(view_task_window, text="Done", fg="green",
                                     command=lambda: (self.mark_task_as_done(task.id), view_task_window.destroy()))
-            done_button.grid(pady=5, padx=5, sticky="sw")
+            done_button.grid(row=4, pady=15, padx=15, sticky="se")
 
     def edit_task(self, task=None, view_task_window=None):
         if view_task_window:
@@ -169,9 +154,10 @@ class ToDoApp:
 
         edit_task_window = tk.Toplevel(self.root)
         edit_task_window.title("Edit Task" if task else "Add Task")
+        edit_task_window.resizable(False, False)
 
-        tk.Label(edit_task_window, text="Title").grid(row=0, column=0, pady=5, padx=5)
-        title_entry = tk.Entry(edit_task_window)
+        tk.Label(edit_task_window, text="Title").grid(row=0, column=0, pady=0, padx=0)
+        title_entry = tk.Entry(edit_task_window, width=40)
         title_entry.grid(row=0, column=1, pady=5, padx=5)
 
         tk.Label(edit_task_window, text="Content").grid(row=1, column=0, pady=5, padx=5)
@@ -192,25 +178,35 @@ class ToDoApp:
         tk.Label(edit_task_window, text="Due Date").grid(row=3, column=0, pady=5, padx=5)
         date_entry = DateEntry(edit_task_window, state="readonly")
         date_entry.grid(row=3, column=1, pady=5, padx=5)
-
-        self.date_entry_button = tk.Button(edit_task_window, text="Add date", command=self.toggle_date_entry)
-        self.date_entry_button.grid(row=4, column=1, pady=5, padx=5)
-
         if task and task.datetime:
             date_entry.set_date(task.datetime)
 
         button_frame = tk.Frame(edit_task_window)
         button_frame.grid(row=4, column=1, pady=10)
 
-        save_button = tk.Button(button_frame, text="Save", command=lambda: self.save_task(task, title_entry.get(),
+        save_button = tk.Button(button_frame, text="Save", bg="lightgreen", command=lambda: self.save_task(task, title_entry.get(),
                                                                                           content_text.get("1.0",
                                                                                                            tk.END).strip(),
                                                                                           date_entry.get_date(),
                                                                                           edit_task_window))
-        save_button.pack(side=tk.LEFT, padx=5)
+        save_button.grid(row=1, column=2, sticky="se", padx=20)
 
-        cancel_button = tk.Button(button_frame, text="Cancel", command=edit_task_window.destroy)
-        cancel_button.pack(side=tk.LEFT, padx=5)
+        cancel_button = tk.Button(button_frame, text="Cancel", bg="pink", command=edit_task_window.destroy)
+        cancel_button.grid(row=1, column=1, sticky="s", padx=20)
+
+        if task:
+            delete_button = tk.Button(button_frame, text="Delete", bg="red", command=lambda: self.delete_task(task.id, edit_task_window))
+            delete_button.grid(row=1, column=0, sticky="sw", padx=20)
+
+    def delete_task(self, task_id, window = None):
+        confirm = messagebox.askyesno("Warning", "Are you sure, you want to delete this task?")
+
+        if confirm:
+            self.db.delete_task(task_id)
+            self.update_task_list()
+
+        if window:
+            window.destroy()
 
     def mark_task_as_done(self, task_id):
         task = next(task for task in self.db.get_tasks() if task.id == task_id)
@@ -219,6 +215,16 @@ class ToDoApp:
         self.update_task_list()
 
     def save_task(self, task, title, content, due_date, window):
+        if due_date < dt.today().date():
+            messagebox.showerror("Error", "You cannot select a date earlier than today!")
+            return
+        if not title.strip():
+            messagebox.showerror("Error", "Task title cannot be empty!")
+            return
+        if not content.strip():
+            messagebox.showerror("Error", "Task content cannot be empty!")
+            return
+
         if task is None:
             self.save_new_task(title, content, due_date, window)
             return
@@ -234,78 +240,17 @@ class ToDoApp:
         self.update_task_list()
         window.destroy()
 
-    def open_done_tasks(self):
-        done_tasks_window = tk.Toplevel(self.root)
-        done_tasks_window.title("Completed Tasks")
-        done_tasks_window.geometry("600x400")
-
-        done_task_tree_frame = tk.Frame(done_tasks_window)
-        done_task_tree_frame.grid(row=1, column=0, columnspan=2, sticky="nsew", padx=10, pady=10)
-
-        done_tasks_window.grid_rowconfigure(1, weight=1)
-        done_tasks_window.grid_columnconfigure(0, weight=1)
-
-        done_task_tree_scrollbar = tk.Scrollbar(done_task_tree_frame, orient="vertical")
-        self.done_task_tree = ttk.Treeview(done_task_tree_frame, columns=("ID", "Title", "Due Date", "Status"),
-                                           show="headings", yscrollcommand=done_task_tree_scrollbar.set)
-
-        self.done_task_tree.heading("ID", text="ID")
-        self.done_task_tree.heading("Title", text="Title")
-        self.done_task_tree.heading("Due Date", text="Due Date")
-        self.done_task_tree.heading("Status", text="Status")
-
-        self.done_task_tree.grid(row=0, column=0, sticky="nsew")
-        done_task_tree_scrollbar.grid(row=0, column=1, sticky="ns")
-        done_task_tree_scrollbar.config(command=self.done_task_tree.yview)
-
-        done_task_tree_frame.grid_rowconfigure(0, weight=1)
-        done_task_tree_frame.grid_columnconfigure(0, weight=1)
-
-        search_frame = tk.Frame(done_tasks_window)
-        search_frame.grid(row=0, column=0, columnspan=2, pady=(10, 0), padx=10, sticky="ew")
-
-        done_search_entry = tk.Entry(search_frame)
-        done_search_entry.grid(row=0, column=0, sticky="ew", padx=(0, 5))
-
-        search_button = tk.Button(search_frame, text="Update Search",
-                                  command=lambda: self.search_done_tasks(done_search_entry.get()))
-        search_button.grid(row=0, column=1, sticky="nw")
-
-        search_frame.grid_columnconfigure(0, weight=1)
-
-    def search_done_tasks(self, query):
-        filtered_tasks = [task for task in self.db.get_tasks(status="done") if
-                          query.lower() in task.title.lower() or query.lower() in task.content.lower()]
-        self.update_done_task_list(filtered_tasks)
-
-    def update_done_task_list(self, tasks):
-        for row in self.done_task_tree.get_children():
-            self.done_task_tree.delete(row)
-        for task in tasks:
-            self.done_task_tree.insert("", "end", values=(
-                task.id, task.title, task.datetime.strftime('%Y-%m-%d') if task.datetime else "No Deadline",
-                task.status))
-
     def run(self):
         self.root.mainloop()
-
-    def toggle_date_entry(self):
-        if self.date_entry_button.cget('text') == 'Add date':
-            self.date_entry_button.config(text='Save date')
-        else:
-            self.date_entry_button.config(text='Add date')
 
     def filter_tasks(self, event=None):
         filter_value = self.filter_combobox.get()
         status_mapping = {
             "All": None,
             "In Progress": "progress",
-            "Expired": "expired"
+            "Expired": "expired",
+            "Done": "done"
         }
         status = status_mapping.get(filter_value)
         tasks = self.db.get_tasks(status=status)
         self.update_task_list(tasks)
-
-    @staticmethod
-    def close_view_task_window():
-        view_task_window.destroy()
