@@ -215,7 +215,7 @@ class ToDoApp:
         self.update_task_list()
 
     def save_task(self, task, title, content, due_date, window):
-        if due_date < dt.today().date():
+        if due_date < dt.today().date() and task.status != "progress":
             messagebox.showerror("Error", "You cannot select a date earlier than today!")
             return
         if not title.strip():
